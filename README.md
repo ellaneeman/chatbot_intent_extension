@@ -5,7 +5,7 @@
 * [About](#About)
 * [Prerequisites](#Prerequisites)
 * [Research and Analysis](#Research_and_Analysis)
-* [Limitations and Future Work](#Limitations_and_Future Work)
+* [Limitations and Future Work](#Limitations)
 
 ## About
 
