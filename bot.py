@@ -37,7 +37,7 @@ class PocBot:
         utterance_paraphrases = self.intent_generator.query_paraphraser(utterance)
         possible_intents = self.intent_generator.get_intents_from_paraphrases(utterance_paraphrases)
         new_intent, confidence = self.intent_generator.choose_best_intent(utterance, possible_intents,
-                                                              list(self.intents_to_actions.keys()))
+                                                                          list(self.intents_to_actions.keys()))
         return new_intent, utterance_paraphrases
 
     def cache_new_intent(self, intent, action_text):
@@ -49,13 +49,12 @@ class PocBot:
         new_intent = ".".join(intent.split())
         known_intents_list = self.assistant_v1.list_intents(workspace_id=self.workspace_id).get_result()["intents"]
         if new_intent not in [known_intent["intent"] for known_intent in known_intents_list]:
-            print(paraphrases_examples)
             response_intent = self.assistant_v1.create_intent(workspace_id=self.workspace_id,
                                                               intent=new_intent,
                                                               examples=paraphrases_examples).get_result()["intent"]
-            print("intent {} was added to list_intents.".format(response_intent))
-        else:
-            print("intent {} is already in list_intents.".format(new_intent))
+            # print("intent {} was added to list_intents.".format(response_intent))
+        # else:
+        # print("intent {} is already in list_intents.".format(new_intent))
 
     def delete_intent(self, intent):
         new_intent = ".".join(intent.split())
@@ -64,8 +63,8 @@ class PocBot:
             self.assistant_v1.delete_intent(workspace_id=self.workspace_id,
                                             intent=new_intent).get_result()
             after_intents_list = self.assistant_v1.list_intents(workspace_id=self.workspace_id).get_result()["intents"]
-            if new_intent not in after_intents_list:
-                print("intent {} was removed successfully from list_intents.".format(new_intent))
+            # if new_intent not in after_intents_list:
+            # print("intent {} was removed successfully from list_intents.".format(new_intent))
 
     def clear_intents(self):
         for intent in self.intents_to_actions:
@@ -80,7 +79,7 @@ class PocBotSession:
     def message(self, text):  # here
         bot_response = self.bot.assistant.message(assistant_id=self.bot.environment_id, session_id=self.session_id,
                                                   input={'message_type': 'text', 'text': text}).get_result()["output"]
-        print(bot_response)
+        # print(bot_response)
         if bot_response["intents"]:
             return {"text": bot_response['generic'][0]["text"]}
         else:
