@@ -5,6 +5,7 @@
 * [About](#About)
 * [Prerequisites](#Prerequisites)
 * [Research and Analysis](#Research_and_Analysis)
+* [Limitations and Future Work](#Limitations_and_Future Work)
 
 ## About
 
@@ -31,7 +32,7 @@ search engine capabilities.
     - Use the `search_engine` to create an `action_text` that matches the new intent, based on a passage from the
       retrival search engine.
     - Create an intent object in the remote assistant based on the new intent and the utterance's paraphrases, using
-      the [Watson Assistant V1](https://cloud.ibm.com/apidocs/assistant-v1?code=python#introduction)
+      the [Watson Assistant V1](https://cloud.ibm.com/apidocs/assistant-v1?code=python#introduction).
     - Cache the new intent and its matching `action_text` (complementary to the assistant's intent creation).
     - Return the `action_text` to the user as the bot response text.
 
@@ -55,39 +56,6 @@ search engine capabilities.
       correctly. Some manually picked examples appear in `input: <paraphrases> output: <intent>` format, and the last
       sentence in prompt refers to the given utterance paraphrases `input: <utterance paraphrases> output:` and is to be
       filled by the model.
-       ```console 
-       input:
-       0: What weather will we have tomorrow?
-       1: What is tomorrow's weather?
-       2: What is the weather of tomorrow?
-       3: What will be the weather tomorrow?
-       4: What are your forecasts for the weather tomorrow?
-    
-       output: know weather
-    
-       input: 
-       0: Where can I get dog?
-       1: Where can I find dogs?
-       2: Where should I buy a dog?
-       3: Where and how do I buy a puppy?
-       4: How can I buy a dog?
-    
-       output: get dog
-    
-       input:
-       0: What are the best 4 tracks for data science?
-       1: What are the best course choices for starting data science career?
-       2: What should I learn to do in data science?
-       3: What kind of courses do you recommend to get started with in data science?
-       4: What courses should I take to get started in data science?
-    
-       output: learn data science
-    
-       input:
-       <utterance paraphrases>
-    
-       output:
-       ```
       Some filtering heuristics apply on the generated output to decide whether it's in a proper form or not.
     - `self.zero_shot_classifier` -
       [NLI-based Zero Shot Text Classification model](https://huggingface.co/facebook/bart-large-mnli): a Bart large
@@ -110,7 +78,7 @@ search engine capabilities.
 
 ## Prerequisites
 
-1. Python 3.9 installed + the packages that are specified in ```requirements.txt```
+1. Python 3.9 installed + the packages that are specified in [requirements.txt](requirements.txt).
 2. [IBM Cloud Account](https://cloud.ibm.com/). A ```config.json``` file should be filled based on your IBM Cloud
    values, and added to the source folder:
 
@@ -128,17 +96,84 @@ search engine capabilities.
 
 ## Research and Analysis
 
-- see [Results Analysis colab notebook]() with intent predicted on SNIPS dataset:
--
+- see [Results Analysis]() colab notebook with intent predicted
+  on [SNIPS](https://www.kaggle.com/datasets/weipengfei/atis-snips) dataset:
+- see [T5 for intent generation](https://colab.research.google.com/drive/1qJ5IT_ngcRn2C2PyIGQrLybCRlti2adG?usp=sharing)
+  colab notebook with a T5 pre-trained model being fine-tuned on
+  the [SNIPS](https://www.kaggle.com/datasets/weipengfei/atis-snips) dataset, to conclude the effort in this
+  direction. This research direction tried to utilize the generative nature of T5 by fine-tuning it on intent
+  classification, hoping it will learn the task of intent generation (rather than focus solely on classification). The
+  hypothesis was that at inference time, the model will succeed in zero-shot intent generation. However, the results
+  showed that T5 excels too much in learning classification labels.
 
-see [T5 for intent generation colab notebook](https://colab.research.google.com/drive/1qJ5IT_ngcRn2C2PyIGQrLybCRlti2adG?usp=sharing)
-with a T5 pre-trained model being fine-tuned on the SNIPS dataset, to conclude the effort in this direction. This
-research direction tried to utilize the generative nature of T5 by fine-tuning it on intent classification, hoping it
-will learn the task of intent generation (rather than focus solely on classification). The hypothesis was that at
-inference time, the model will succeed in zero-shot intent generation. However, the results showed that T5 excels too
-much in learning classification labels.
+#### Querying the generator model with in-context learning
 
-#### In-context learning
+We first experimented with some prompts to give to the `generator` model, such as:
+
+```console
+    <utterance>. In other words, I intend to
+```
+
+which worked for some examples (`"I'm looking for a new puppy` produced `get a puppy`) but failed for the majority of
+the trials, generating long paragraphs with no clear intent specification.
+
+Then we used `in-context learning` prompt to let the model infer the task by itself. In
+the [GPT-3 paper](https://arxiv.org/pdf/2005.14165.pdf) the term “in-context
+learning” was introduced as
+
+```console
+"using the text input of a pretrained language model as a form of task specification: the model is conditioned on a 
+natural language instruction and/or a few demonstrations of the task and is then expected to complete further instances
+ of the task simply by predicting what comes next."
+```
+
+and the concept showed surprisingly-good results. according
+to [The Stanford AI Lab Blog](http://ai.stanford.edu/blog/understanding-incontext/):
+
+```console 
+"On many benchmark NLP benchmarks, in-context learning is competitive with models trained with much more labeled data 
+and is state-of-the-art on LAMBADA (commonsense sentence completion) and TriviaQA (question answering)." 
+```
+
+We noticed that a good `paraphraser` should capture the sematic meaning behind an utterance to be able to generate
+similar but diverse utterances. This kind of meaning is exactly the intent standing behind those utterances. 
+
+So we annotated 3 utterances with their intent, produced 5 paraphrases, and used them as the in `IN_CONTEXT_PATTERN` for
+a prompt. We experimented with the number of examples and the number of paraphrases.
+
+```console 
+   input:
+   0: What weather will we have tomorrow?
+   1: What is tomorrow's weather?
+   2: What is the weather of tomorrow?
+   3: What will be the weather tomorrow?
+   4: What are your forecasts for the weather tomorrow?
+
+   output: know weather
+
+   input: 
+   0: Where can I get dog?
+   1: Where can I find dogs?
+   2: Where should I buy a dog?
+   3: Where and how do I buy a puppy?
+   4: How can I buy a dog?
+
+   output: get dog
+
+   input:
+   0: What are the best 4 tracks for data science?
+   1: What are the best course choices for starting data science career?
+   2: What should I learn to do in data science?
+   3: What kind of courses do you recommend to get started with in data science?
+   4: What courses should I take to get started in data science?
+
+   output: learn data science
+
+   input:
+   <utterance paraphrases>
+
+   output:
+ ```
 
 #### Zero-Shot Classification
 
@@ -149,10 +184,84 @@ Incorporating this module proves to be significant in three ways:
   the intent generation.
 - As an evaluation metric for the quality of the generation model. One can compare generated intents vs. random intents
   in a 2-way zero-shot classification model (with the original utterances, as usual), and count how many times the
-  generated intent won.
+  generated intent won. (left for future work).
 
-#### related work?
 
 ## Limitations and Future Work
 
-One setback is the ability to measure
+- As mentioned [above](#Zero-Shot_Classification), in the future, efforts will be directed towards using the zero-shot
+  classification model to compare intent vs. random as a metric for evaluating the pipeline's quality.
+- Future work will aim to ensure that the generated results are produced within an acceptable time frame to operate
+  in real-time. This will be achieved by optimizing the computational efficiency of the models and minimizing any
+  unnecessary computational overheads.
+- Another setback is the inability to promise a fully robust intent identification, e.g, see this conversation history
+  with
+  the poc-bot, along with the intents detected in the background:
+
+-----
+
+   ```console
+   user: how can I set up a watson assistant?
+  ```
+
+   ```console
+   bot: Sample <em>data</em> sets. If an accelerator includes sample <em>data</em> <em>science</em> assets, the accelerator includes sample
+   <em>data</em> sets that you can use to <em>get</em> <em>started</em> with the accelerator. When you import the terms
+   and categories into your business glossary, the metadata for the sample <em>data</em> sets is added to your catalog.
+   ```
+
+intent `get.started.with.data.science` was added to list_intents.
+
+   ```console
+   user: how can I set up a watson assistant?
+  ```
+
+  ```console
+   bot: Installation information: Importing industry accelerators Customer Offer Affinity Included with Cloud Pak for 
+  <em>Data</em> Identify the right financial products and investment opportunities for <em>new</em> and existing clients.
+   This accelerator includes more than 190 business terms and a set of sample <em>data</em> <em>science</em> assets to
+   help you determine which offers will be most relevant to your clients.
+   ```
+
+intent `create.new.data.science.assistant` was added to list_intents.
+
+   ```console
+   user: how can I set up a watson assistant?
+  ```
+
+   ```console
+  bot: information: <em>Watson</em> <em>Assistant</em> add-on <em>Watson</em> <em>Assistant</em> for Voice Interaction
+   Separately priced Deliver a <em>Watson</em>-based voice automation system.Installation information: Installing the
+   <em>Watson</em> <em>Assistant</em> for Voice
+  ```
+
+intent `work.with.a.Watson.assistant` was added to list_intents.
+
+   ```console
+  user: how can I set up a watson assistant?
+  ```
+
+   ```console
+  bot: information: <em>Watson</em> <em>Assistant</em> add-on <em>Watson</em> <em>Assistant</em> for Voice Interaction
+   Separately priced Deliver a <em>Watson</em>-based voice automation system.Installation information: Installing the
+   <em>Watson</em> <em>Assistant</em> for Voice
+    ```
+  identified the utterance as an already known intent `work.with.a.Watson.assistant` and didn't add to list_intents.
+   ```console 
+  user: how can I set up a watson assistant?
+  ```
+
+  ```console 
+  bot: topic=ai-openscale-icp-gs-<em>get</em>-started#gs-<em>get</em>-started<em>Watson</em> Speech to Text
+   Separately priced Quickly convert audio and voice into written text.Installation 
+   information: Installingthe <em>Watson</em> Speech to Text add-onUsage 
+  information: <em>Watson</em> Speech to Text add-on Included in the separately priced <em>Watson</em> API Kit package.
+   <em>Watson</em> Text to Speech  
+   ```
+
+intent `get.a.WATSON` was added to list_intents.
+
+-----
+
+Although a zero-shot classification model was used to increase robustness for overly-detailed or
+diverse generation, this example emphasizes that more effort should be done in this direction.
