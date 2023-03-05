@@ -6,7 +6,6 @@ import en_core_web_sm
 
 nlp = en_core_web_sm.load()
 
-# global generator, zero_shot_classification, model, tokenizer, device
 NUM_CANDIDATES = 5
 IN_CONTEXT_PATTERN = """input:
 0: What weather will we have tomorrow?
@@ -61,20 +60,20 @@ def get_generator():
 
 
 def get_classifier():
-    return pipeline(model="facebook/bart-large-mnli")
+    return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 
 class IntentGenerator:
     def __init__(self):
         self.generator = get_generator()
-        self.model, self.tokenizer, self.device = get_paraphraser()
-        self.zero_shot_classification = get_classifier()
+        self.paraphraser, self.tokenizer, self.device = get_paraphraser()
+        self.zero_shot_classifier = get_classifier()
 
     def query_paraphraser(self, utterance, num_return_sequences=5):
         text = "paraphrase: " + utterance + " </s>"
         encoding = self.tokenizer.encode_plus(text, pad_to_max_length=True, return_tensors="pt")
         input_ids, attention_masks = encoding["input_ids"].to(self.device), encoding["attention_mask"].to(self.device)
-        beam_outputs = self.model.generate(
+        beam_outputs = self.paraphraser.generate(
             input_ids=input_ids, attention_mask=attention_masks,
             do_sample=True,
             max_length=256,
@@ -88,8 +87,7 @@ class IntentGenerator:
             sent = self.tokenizer.decode(beam_output, skip_special_tokens=True, clean_up_tokenization_spaces=True)
             if sent.lower() != utterance.lower() and sent not in final_outputs:
                 final_outputs.append(sent)
-        paraphrases = "\n".join(["{}: {}".format(i, final_output) for i, final_output in enumerate(final_outputs)])
-        return paraphrases
+        return final_outputs
 
     @classmethod
     def _is_verb_intent(cls, intent):
@@ -107,15 +105,16 @@ class IntentGenerator:
                 return True
         return False
 
-    def get_intents_from_utterance(self, utterance, k=NUM_CANDIDATES):
-        utterance_paraphrases = self.query_paraphraser(utterance)
+    def get_intents_from_paraphrases(self, utterance_paraphrases, k=NUM_CANDIDATES):
         intents = []
         for i in range(k):
             intents.append(self.get_better_intent(utterance_paraphrases))
         return intents
 
     def generate_intent_candidate(self, utterance_paraphrases, prompt_pattern=IN_CONTEXT_PATTERN, max_new_tokens=5):
-        prompt = prompt_pattern.format(utterance_paraphrases)
+        paraphrases_text = "\n".join(
+            ["{}: {}".format(i, final_output) for i, final_output in enumerate(utterance_paraphrases)])
+        prompt = prompt_pattern.format(paraphrases_text)
         output = self.generator(prompt, do_sample=True, min_length=20, max_new_tokens=max_new_tokens)
         generated_text = output[0]["generated_text"].replace(prompt, "")
         generated_text = re.sub("\n.*", "", generated_text)
@@ -124,33 +123,12 @@ class IntentGenerator:
 
     def get_better_intent(self, utterance_paraphrases):
         intent_candidate = self.generate_intent_candidate(utterance_paraphrases)
-        while (len(nlp(intent_candidate)) < 2) or (self._has_wh_question(intent_candidate)) or (not self._is_verb_intent(intent_candidate)):
+        while (len(nlp(intent_candidate)) < 2) or (self._has_wh_question(intent_candidate)) or (
+                not self._is_verb_intent(intent_candidate)):
             intent_candidate = self.generate_intent_candidate(utterance_paraphrases)
         return intent_candidate
 
     def choose_best_intent(self, utterance, intent_candidates, known_intents):
-        prediction = self.zero_shot_classification(utterance,
-                                                   candidate_labels=list(set(intent_candidates + known_intents)))
-        return prediction["labels"][0], prediction["scores"][1]
-
-
-if __name__ == '__main__':
-    # generator = get_generator()
-    # model, tokenizer, device = get_paraphraser()
-    # zero_shot_classification = get_classifier()
-
-    # sentence = "Which course should I take to get started in data science?"
-    sentence = "What are the ingredients required to bake a perfect cake?"
-    # sentence = "What is the best possible approach to learn aeronautical engineering?"
-    # sentence = "Do apples taste better than oranges in general?"
-
-    intent_generator = IntentGenerator()
-    possible_intents = intent_generator.get_intents_from_utterance(sentence, k=NUM_CANDIDATES)
-    intent = intent_generator.choose_best_intent(sentence, possible_intents, ["play music", "know weather", "get dog"])
-
-    # snips20 = pd.read_csv("/content/drive/MyDrive/atis_snips/snips/train.csv", nrows=20)
-    # snips20 = snips20.assign(possibles=snips20["text"].apply(get_intents_from_utterance, args=(NUM_CANDIDATES)))
-    # snips20 = snips20.assign(labels=snips20.apply(
-    #     lambda x: choose_best_intent(x["text"], x["possibles"], ["play music", "know weather", "get dog"]),
-    #     axis=1))
-    # snips20.to_csv("/content/drive/MyDrive/atis_snips/snips/snips20_labels.csv")
+        prediction = self.zero_shot_classifier(utterance,
+                                               candidate_labels=list(set(intent_candidates + known_intents)))
+        return prediction["labels"][0], prediction["scores"][1]  # confidence
