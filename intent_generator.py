@@ -7,6 +7,7 @@ import en_core_web_sm
 nlp = en_core_web_sm.load()
 
 NUM_CANDIDATES = 5
+MAX_ITERATIONS = 7
 IN_CONTEXT_PATTERN = """input:
 0: What weather will we have tomorrow?
 1: What is tomorrow's weather?
@@ -121,11 +122,13 @@ class IntentGenerator:
         generated_text = re.sub("input", "", generated_text)
         return generated_text.strip(":").strip()
 
-    def get_better_intent(self, utterance_paraphrases):
+    def get_better_intent(self, utterance_paraphrases, max_iterations=MAX_ITERATIONS):
         intent_candidate = self.generate_intent_candidate(utterance_paraphrases)
+        counter = 0
         while (len(nlp(intent_candidate)) < 2) or (self._has_wh_question(intent_candidate)) or (
-                not self._is_verb_intent(intent_candidate)):
+                not self._is_verb_intent(intent_candidate)) or counter < max_iterations:
             intent_candidate = self.generate_intent_candidate(utterance_paraphrases)
+            counter += 1
         return intent_candidate
 
     def choose_best_intent(self, utterance, intent_candidates, known_intents):
