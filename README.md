@@ -97,7 +97,7 @@ search engine capabilities.
 ## Research and Analysis
 
 - see [Results Analysis]() colab notebook with intent predicted
-  on [SNIPS](https://www.kaggle.com/datasets/weipengfei/atis-snips) dataset:
+  on [SNIPS](https://www.kaggle.com/datasets/weipengfei/atis-snips) dataset. (missing)
 - see [T5 for intent generation](https://colab.research.google.com/drive/1qJ5IT_ngcRn2C2PyIGQrLybCRlti2adG?usp=sharing)
   colab notebook with a T5 pre-trained model being fine-tuned on
   the [SNIPS](https://www.kaggle.com/datasets/weipengfei/atis-snips) dataset, to conclude the effort in this
