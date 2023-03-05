@@ -53,11 +53,3 @@ function addMessage(text, sender) {
     messages.appendChild(message);
     messages.scrollTop = messages.scrollHeight;
 }
-
-$(document).ajaxStart(function() {
-  $('#loading-spinner').show();
-});
-
-$(document).ajaxStop(function() {
-  $('#loading-spinner').hide();
-});

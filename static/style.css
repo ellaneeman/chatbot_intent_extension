@@ -66,19 +66,3 @@ button {
   flex-direction: column;
   height: 100vh;
 }
-
-.spinner {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 9999;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 20px;
-  border-radius: 5px;
-  text-align: center;
-}
-.spinner i {
-  font-size: 2rem;
-  margin-bottom: 10px;
-}
