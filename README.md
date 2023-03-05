@@ -2,10 +2,10 @@
 
 ## Table of contents
 
-* [About](#About)
-* [Prerequisites](#Prerequisites)
-* [Research and Analysis](#Research_and_Analysis)
-* [Limitations and Future Work](#Limitations)
+* [About](#about)
+* [Prerequisites](#prerequisites)
+* [Research and Analysis](#research-and-analysis)
+* [Limitations and Future Work](#limitations-and-future-work)
 
 ## About
 
