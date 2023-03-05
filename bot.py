@@ -36,6 +36,8 @@ class PocBot:
     def generate_intent(self, utterance):
         utterance_paraphrases = self.intent_generator.query_paraphraser(utterance)
         possible_intents = self.intent_generator.get_intents_from_paraphrases(utterance_paraphrases)
+        if len(possible_intents) == 0 and len(list(self.intents_to_actions.keys())) == 0:
+            return None, None
         new_intent, confidence = self.intent_generator.choose_best_intent(utterance, possible_intents,
                                                                           list(self.intents_to_actions.keys()))
         return new_intent, utterance_paraphrases
@@ -84,6 +86,8 @@ class PocBotSession:
             return {"text": bot_response['generic'][0]["text"]}
         else:
             new_intent, utterance_paraphrases = self.bot.generate_intent(text)
+            if new_intent is None:
+                return {"text": bot_response['generic'][0]["text"]}  # original unknown intent response.
             if new_intent in self.bot.intents_to_actions:
                 return {"text": self.bot.intents_to_actions[new_intent]}
             action_text = self.bot.query_engine(new_intent)
