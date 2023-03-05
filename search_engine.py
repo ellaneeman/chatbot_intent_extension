@@ -1,8 +1,6 @@
 import json
 from ibm_watson import DiscoveryV2
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
-from config import DISCOVERY_API_KEY, DISCOVERY_INSTANCE_ID, DISCOVERY_PROJECT_ID
-
 
 class SearchEngine:
     def __init__(self, instance_id, api_key, project_id):
