@@ -34,4 +34,4 @@ if __name__ == '__main__':
                      discovery_project_id=config["discovery_project_id"],
                      workspace_id=config["workspace_id"])
     session = poc_bot.create_session()
-    app.run(port=5000)
+    app.run(host="0.0.0.0", port=5000)
