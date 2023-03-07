@@ -32,6 +32,8 @@ if __name__ == '__main__':
                      discovery_instance_id=config["discovery_instance_id"],
                      discovery_api_key=config["discovery_api_key"],
                      discovery_project_id=config["discovery_project_id"],
-                     workspace_id=config["workspace_id"])
+                     assistant_service_url=config["assistant_service_url"],
+                     discovery_service_url=config["discovery_service_url"])
     session = poc_bot.create_session()
+    # app.run(port=5000)
     app.run(host="0.0.0.0", port=5000)
