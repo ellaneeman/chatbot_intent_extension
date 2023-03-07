@@ -11,6 +11,20 @@ input.addEventListener('keydown', function(event) {
 
 const endSessionBtn = document.getElementById('end-session-btn');
 endSessionBtn.addEventListener('click', endSession);
+document.addEventListener('DOMContentLoaded', createSession);
+
+
+function createSession() {
+    fetch('/create_session', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    })
+    .then(response => response.json())
+    .then(data => addMessage(data.text, 'bot'))
+    .catch(error => console.error(error));
+}
 
 function endSession() {
     fetch('/delete', {

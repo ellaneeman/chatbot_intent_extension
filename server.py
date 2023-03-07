@@ -11,11 +11,19 @@ global session
 
 @app.route('/message', methods=['POST'])
 def message():
+    global session
     data = request.get_json()
     text = data['text']
     response = session.message(text)
     response_text = response['text']
     return {'text': response_text}
+
+
+@app.route('/create_session', methods=['POST'])
+def create_session():
+    global session
+    session = poc_bot.create_session()
+    return {'text': f' Session {session.session_id} started.'}
 
 
 @app.route('/delete', methods=['POST'])
@@ -34,5 +42,4 @@ if __name__ == '__main__':
                      discovery_project_id=config["discovery_project_id"],
                      assistant_service_url=config["assistant_service_url"],
                      discovery_service_url=config["discovery_service_url"])
-    session = poc_bot.create_session()
     app.run(host="0.0.0.0", port=5000)
