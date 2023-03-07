@@ -85,13 +85,16 @@ search engine capabilities.
 ```console
 {
   "assistant_api_key": <assistant_api_key>,
-  "discovery_api_key": <discovery_api_key>,
   "environment_id": <environment_id>, # v2, not assistant_id
-  "action_skill_id": <action_skill_id>,
+  "workspace_id": <workspace_id>, # v1
+  
+  "discovery_api_key": <discovery_api_key>,
   "discovery_project_id": <discovery_project_id>,
   "discovery_instance_id": <discovery_instance_id>,
-  "workspace_id": <workspace_id> # v1
-}
+  
+  "assistant_service_url": <assistant_service_url>,
+  "discovery_service_url": <discovery_service_url>
+  }
 ```
 
 ## Research and Analysis
@@ -245,7 +248,7 @@ intent `work.with.a.Watson.assistant` was added to list_intents.
   bot: information: <em>Watson</em> <em>Assistant</em> add-on <em>Watson</em> <em>Assistant</em> for Voice Interaction
    Separately priced Deliver a <em>Watson</em>-based voice automation system.Installation information: Installing the
    <em>Watson</em> <em>Assistant</em> for Voice
-    ```
+   ```
   identified the utterance as an already known intent `work.with.a.Watson.assistant` and didn't add to list_intents.
    ```console 
   user: how can I set up a watson assistant?
