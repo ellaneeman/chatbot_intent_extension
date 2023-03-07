@@ -86,7 +86,6 @@ search engine capabilities.
 {
   "assistant_api_key": <assistant_api_key>,
   "environment_id": <environment_id>, # v2, not assistant_id
-  "workspace_id": <workspace_id>, # v1
   
   "discovery_api_key": <discovery_api_key>,
   "discovery_project_id": <discovery_project_id>,
