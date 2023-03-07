@@ -35,5 +35,4 @@ if __name__ == '__main__':
                      assistant_service_url=config["assistant_service_url"],
                      discovery_service_url=config["discovery_service_url"])
     session = poc_bot.create_session()
-    # app.run(port=5000)
     app.run(host="0.0.0.0", port=5000)
