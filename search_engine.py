@@ -18,5 +18,5 @@ class SearchEngine:
                                         count=count).get_result()
         if response["matching_results"] > 0:
             passage_text = response["results"][0]["document_passages"][0]["passage_text"]
-            return f"Found relevant information regarding: <b>{text}</b>.\n\n{passage_text}"
+            return f"Found information regarding: <b>{text}</b>.\n\n{passage_text}"
         return f"Could not find relevant information regarding: <b>{text}</b>.."
