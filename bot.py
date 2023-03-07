@@ -1,3 +1,5 @@
+import json
+
 from ibm_watson import AssistantV2
 from ibm_watson import AssistantV1
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
@@ -8,27 +10,42 @@ from search_engine import SearchEngine
 
 class PocBot:
     def __init__(self, environment_id, api_key, discovery_instance_id, discovery_api_key, discovery_project_id,
-                 workspace_id):
+                 # workspace_id,
+                 assistant_service_url, discovery_service_url):
         # v2
         self.environment_id = environment_id
         self.authenticator = IAMAuthenticator(api_key)
         self.assistant = AssistantV2(version='2021-06-14', authenticator=self.authenticator)
-        self.assistant.set_service_url('https://api.us-east.assistant.watson.cloud.ibm.com')
+        self.assistant.set_service_url(assistant_service_url)
 
         # v1
         self.assistant_v1 = AssistantV1(version='2021-11-27', authenticator=self.authenticator)
-        self.assistant_v1.set_service_url('https://api.us-east.assistant.watson.cloud.ibm.com')
-        self.workspace_id = workspace_id
+        self.assistant_v1.set_service_url(assistant_service_url)
+        self.workspace_id = None
 
-        self.search_engine = SearchEngine(discovery_instance_id, discovery_api_key, discovery_project_id)
+        self.search_engine = SearchEngine(discovery_instance_id,
+                                          discovery_api_key,
+                                          discovery_project_id,
+                                          discovery_service_url)
         self.intent_generator = IntentGenerator()
 
         # could not add action to the assistant through API call
         self.intents_to_actions = {}
 
     def create_session(self):
+        # self.delete_workspace("75b16cba-57f0-4c6f-b10c-9dba5020c56c")
         session_id = self.assistant.create_session(assistant_id=self.environment_id).get_result()["session_id"]
         return PocBotSession(self, session_id)
+
+    def get_or_create_workspace_id(self):
+        workspaces = list(self.assistant_v1.list_workspaces().get_result()["workspaces"])
+        if len(workspaces) > 1:
+            return workspaces[0]["workspace_id"]
+        return self.assistant_v1.create_workspace().get_result()["workspace_id"]
+
+    def delete_workspace(self, workspace_id):
+        response = self.assistant_v1.delete_workspace(workspace_id=workspace_id).get_result()
+        print(json.dumps(response, indent=2))
 
     def query_engine(self, text):
         return self.search_engine.query(text)
@@ -46,6 +63,7 @@ class PocBot:
         self.intents_to_actions[intent] = action_text
 
     def send_intent(self, intent, paraphrases_list=None):
+        self.workspace_id = self.get_or_create_workspace_id()
         paraphrases_list = set([p.lower() for p in paraphrases_list])
         paraphrases_examples = [{"text": paraphrase} for paraphrase in paraphrases_list]
         new_intent = ".".join(intent.split())
@@ -59,12 +77,13 @@ class PocBot:
         # print("intent {} is already in list_intents.".format(new_intent))
 
     def delete_intent(self, intent):
+        self.workspace_id = self.get_or_create_workspace_id()
         new_intent = ".".join(intent.split())
         known_intents_list = self.assistant_v1.list_intents(workspace_id=self.workspace_id).get_result()["intents"]
         if new_intent in [known_intent["intent"] for known_intent in known_intents_list]:
             self.assistant_v1.delete_intent(workspace_id=self.workspace_id,
                                             intent=new_intent).get_result()
-            after_intents_list = self.assistant_v1.list_intents(workspace_id=self.workspace_id).get_result()["intents"]
+            # after_intents_list = self.assistant_v1.list_intents(workspace_id=self.workspace_id).get_result()['intents']
             # if new_intent not in after_intents_list:
             # print("intent {} was removed successfully from list_intents.".format(new_intent))
 
@@ -81,7 +100,6 @@ class PocBotSession:
     def message(self, text):  # here
         bot_response = self.bot.assistant.message(assistant_id=self.bot.environment_id, session_id=self.session_id,
                                                   input={'message_type': 'text', 'text': text}).get_result()["output"]
-        # print(bot_response)
         if bot_response["intents"]:
             return {"text": bot_response['generic'][0]["text"]}
         else:
