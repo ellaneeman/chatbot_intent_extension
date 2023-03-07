@@ -1,5 +1,6 @@
 import json
 
+from ibm_cloud_sdk_core.api_exception import ApiException
 from ibm_watson import AssistantV2
 from ibm_watson import AssistantV1
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
@@ -33,7 +34,6 @@ class PocBot:
         self.intents_to_actions = {}
 
     def create_session(self):
-        # self.delete_workspace("75b16cba-57f0-4c6f-b10c-9dba5020c56c")
         session_id = self.assistant.create_session(assistant_id=self.environment_id).get_result()["session_id"]
         return PocBotSession(self, session_id)
 
@@ -66,15 +66,25 @@ class PocBot:
         self.workspace_id = self.get_or_create_workspace_id()
         paraphrases_list = set([p.lower() for p in paraphrases_list])
         paraphrases_examples = [{"text": paraphrase} for paraphrase in paraphrases_list]
-        new_intent = ".".join(intent.split())
-        known_intents_list = self.assistant_v1.list_intents(workspace_id=self.workspace_id).get_result()["intents"]
-        if new_intent not in [known_intent["intent"] for known_intent in known_intents_list]:
-            response_intent = self.assistant_v1.create_intent(workspace_id=self.workspace_id,
-                                                              intent=new_intent,
-                                                              examples=paraphrases_examples).get_result()["intent"]
-            # print("intent {} was added to list_intents.".format(response_intent))
-        # else:
-        # print("intent {} is already in list_intents.".format(new_intent))
+        if intent.isalpha():
+            new_intent = ".".join(intent.split())
+            known_intents_list = self.assistant_v1.list_intents(workspace_id=self.workspace_id).get_result()["intents"]
+            if new_intent not in [known_intent["intent"] for known_intent in known_intents_list]:
+                try:
+                    response = self.assistant_v1.create_intent(workspace_id=self.workspace_id,
+                                                               intent=new_intent,
+                                                               examples=paraphrases_examples).get_result()
+                    print(f"intent {response['intent']} was added to list_intents.")
+
+                except ApiException as e:
+                    print(type(e))
+                    print(f"An error occurred during self.assistant_v1.create_intent with: \n "
+                          f"workspace_id: {self.workspace_id} \n "
+                          f"new_intent: {new_intent} \n"
+                          f"and {paraphrases_examples}")
+                    print(e)
+        else:
+            print(f"could not add {intent} to the bot's list_intents due to illegal characters.")
 
     def delete_intent(self, intent):
         self.workspace_id = self.get_or_create_workspace_id()
