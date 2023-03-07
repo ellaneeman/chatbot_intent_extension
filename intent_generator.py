@@ -71,8 +71,8 @@ class IntentGenerator:
         self.zero_shot_classifier = get_classifier()
 
     def query_paraphraser(self, utterance, num_return_sequences=5):
-        text = "paraphrase: " + utterance + " </s>"
-        encoding = self.tokenizer.encode_plus(text, pad_to_max_length=True, return_tensors="pt")
+        text = "paraphrase: " + utterance # + " </s>"
+        encoding = self.tokenizer.encode_plus(text, padding=True, return_tensors="pt")
         input_ids, attention_masks = encoding["input_ids"].to(self.device), encoding["attention_mask"].to(self.device)
         beam_outputs = self.paraphraser.generate(
             input_ids=input_ids, attention_mask=attention_masks,
