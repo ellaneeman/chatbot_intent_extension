@@ -51,10 +51,14 @@ class PocBot:
         return self.search_engine.query(text)
 
     def generate_intent(self, utterance):
+        # use the paraphraser model to get utterance's paraphrases.
         utterance_paraphrases = self.intent_generator.query_paraphraser(utterance)
+        # create up to NUM_CANDIDATES using intent_generator based on the paraphrases.
         possible_intents = self.intent_generator.get_intents_from_paraphrases(utterance_paraphrases)
+        # if no candidates were generated, and no previous intents were cached
         if len(possible_intents) == 0 and len(list(self.intents_to_actions.keys())) == 0:
             return None, None
+        # otherwise use the zero-shot classification model to choose the best matching candidate to the utterance
         new_intent, confidence = self.intent_generator.choose_best_intent(utterance, possible_intents,
                                                                           list(self.intents_to_actions.keys()))
         return new_intent, utterance_paraphrases
