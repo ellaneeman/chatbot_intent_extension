@@ -110,13 +110,16 @@ class PocBotSession:
     def message(self, text):  # here
         bot_response = self.bot.assistant.message(assistant_id=self.bot.environment_id, session_id=self.session_id,
                                                   input={'message_type': 'text', 'text': text}).get_result()["output"]
+        original_bot_answer = {"text": bot_response['generic'][0]["text"]}
+        # check if the original bot's assistant identified pre-defined intents.
         if bot_response["intents"]:
-            return {"text": bot_response['generic'][0]["text"]}
+            return original_bot_answer
         else:
             new_intent, utterance_paraphrases = self.bot.generate_intent(text)
             if new_intent is None:
-                return {"text": bot_response['generic'][0]["text"]}  # original unknown intent response.
+                return original_bot_answer  # original unknown intent response.
             if new_intent in self.bot.intents_to_actions:
+                # a previously-made response for an intent identified in the past by the bot's intent's generator.
                 return {"text": self.bot.intents_to_actions[new_intent]}
             action_text = self.bot.query_engine(new_intent)
             self.bot.cache_new_intent(new_intent, action_text)
